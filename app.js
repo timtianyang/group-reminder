@@ -1,30 +1,31 @@
-var admin_num = "4128185379";
+var admin_num;
 var group_leader_num;
 var group_leader_name;
 var group_name = "GanEn";
-var spreadsheetId = '15CNzyZeTPH8RVHXPBhaMFlm6gpCez1_pddDQkyk9OwA';
+var spreadsheetId;
 var global_enable = 0;
 var songs_msg = "Please remember to prepare worship songs this week";
 var bible_msg = "Please remember to prepare to lead bible study this week";
 var snack_msg = "Please remember to prepare snacks and drinks this week";
 var food_msg = "Please remember to get food from Church this week";
-var sms_url = "";
-var secret = "";
+
+var sms_url;
+var sms_token;
+var sms_num;
 
 function sendText(msg, phone_num) {
-    var url = sms_url;
     var options = {
         "method": "post",
         "headers": {
-            "Authorization": "Basic " + Utilities.base64Encode(secret)
+            "Authorization": "Basic " + Utilities.base64Encode(sms_token)
         },
         "payload": {
-            "From": "+14123123652",
+            "From": sms_num,
             "To": phone_num,
             "Body": msg
         }
     };
-    var response = UrlFetchApp.fetch(url, options);
+    var response = UrlFetchApp.fetch(sms_url, options);
 }
 
 /* 
@@ -128,7 +129,15 @@ function populate_globals() {
     //Logger.log(group_name + "," + group_leader_name + "," + group_leader_num + "," + admin_num + "," + global_enable + "," + songs_msg + "," + bible_msg + "," + food_msg)
 }
 
-function doGet() {
+function doGet(e) {
+    if (e === undefined)
+        return ContentService.createTextOutput("no arg");
+
+    spreadsheetId = e.parameter.sheet;
+    
+    if ((spreadsheetId === undefined) || (spreadsheetId == ""))
+      return ContentService.createTextOutput("Your request has no sheetID");
+  
     var target_dat = new Date();
     var numberOfDaysToAdd = 1;
     target_dat.setDate(target_dat.getDate() + numberOfDaysToAdd)
@@ -145,12 +154,13 @@ function doGet() {
   
     var entry = find_entry_by_date(target_dat);
     if ( entry == 1 ) {
-        Logger.log("Entry " + dateString + " doesn't exist!")
-        sendText("Entry " + dateString + " doesn't exist!", admin_num)
+        Logger.log("Entry " + dateString + " doesn't exist or wrong sheet!")
+        sendText("Entry " + dateString + " doesn't exist or wrong sheet!", admin_num)
+        return ContentService.createTextOutput("Entry " + dateString + " doesn't exist or wrong sheet!");
     } else if ( entry == 2 ) {
         Logger.log("Friday canceled")
         /* friday canceled */
-        return;
+        return ContentService.createTextOutput("Friday canceled");
     } else {
         var song_person = entry[2];
         var bible_person = entry[3];
@@ -163,5 +173,6 @@ function doGet() {
         var food_num = look_up_number(food_person);
         notify_all(dateString, song_person, song_num, bible_person, bible_num, snack_person, snack_num, food_person, food_num)
         //notify_all(dateString, song_person, admin_num, bible_person, admin_num, snack_person, admin_num, food_person, admin_num)
+        return ContentService.createTextOutput("Success. Notified " + song_person + ", " + bible_person + ", " + snack_person + ", " +food_person + " for " + dateString);
     }
 }
